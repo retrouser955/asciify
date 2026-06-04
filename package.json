@@ -1,0 +1,20 @@
+{
+  "name": "ascify",
+  "description": "A TUI Spotify player with ASCII art wonderfulness.",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@types/async-lock": "^1.4.2",
+    "acorn": "^8.16.0",
+    "acron": "^1.0.5",
+    "async-lock": "^1.4.1",
+    "chalk": "4",
+    "neo-blessed": "^0.2.0",
+    "node-html-parser": "^7.1.0",
+    "otpauth": "^9.5.1"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@types/blessed": "^0.1.27",
+    "@types/node": "^25.9.1"
+  }
+}
