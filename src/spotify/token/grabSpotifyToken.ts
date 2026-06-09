@@ -2,7 +2,7 @@ import { parse } from "node-html-parser";
 import * as acorn from "acorn";
 import { TOTP, Secret } from "otpauth";
 import { Buffer } from "node:buffer";
-import { USER_AGENT } from "../../Constants";
+import { USER_AGENT } from "../../Constants.ts";
 
 const SPOTIFY_URLS = [
     "https://open.spotify.com/album/7vI4iTxDmgEN63liQHPEX1",
@@ -19,7 +19,7 @@ export interface AnonymousSpotifyTokenResponse {
     clientId: string;
     accessToken: string;
     accessTokenExpirationTimestampMs: number;
-    isAnonymous: true;
+    isAnonymous: boolean;
 }
 
 export interface AnonTokenData {
@@ -27,6 +27,7 @@ export interface AnonTokenData {
     clientToken: string;
     clientVersion: string;
     secrets: SpotifySecret[];
+    deviceId: string;
 }
 
 export type SpotifySecret = { secret: string; version: number };
@@ -130,7 +131,7 @@ export async function grabSpotifyToken(spDc: string, cachedSecrets?: SpotifySecr
     const totpServer = totp.generate({ timestamp: serverTime });
 
     const tokenUrl = new URL("https://open.spotify.com/api/token");
-    tokenUrl.searchParams.set("reason", "init");
+    tokenUrl.searchParams.set("reason", "transport");
     tokenUrl.searchParams.set("productType", "web-player");
     tokenUrl.searchParams.set("totp", totpClient);
     tokenUrl.searchParams.set("totpServer", totpServer);
@@ -142,6 +143,8 @@ export async function grabSpotifyToken(spDc: string, cachedSecrets?: SpotifySecr
         if (!res.ok) throw new Error(`Failed to fetch Spotify token: ${res.statusText}`);
         return res.json();
     }) as AnonymousSpotifyTokenResponse;
+
+    const device = crypto.randomUUID();
 
     const clientTokenResponse = await fetch("https://clienttoken.spotify.com/v1/clienttoken", {
         method: "POST",
@@ -162,7 +165,7 @@ export async function grabSpotifyToken(spDc: string, cachedSecrets?: SpotifySecr
                     device_model: "unknown",
                     os: "linux",
                     os_version: "unknown",
-                    device_id: crypto.randomUUID(),
+                    device_id: device,
                     device_type: "computer",
                 },
             },
@@ -174,5 +177,6 @@ export async function grabSpotifyToken(spDc: string, cachedSecrets?: SpotifySecr
         clientToken: clientTokenResponse.granted_token.token,
         clientVersion,
         secrets, // cache for ~6 hours (re-use on subsequent token refreshes)
+        deviceId: device
     };
 }

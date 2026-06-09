@@ -1,1 +1,12 @@
 node_modules/*
+
+# Librespot
+state.json
+lockfile
+go-librespot
+
+# Spotify Token Cache
+.cache
+
+# Config File
+asciify.json

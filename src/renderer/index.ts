@@ -1,3 +1,2 @@
-export * from "./boxes";
-export * from "./player/canvasPlayer";
-export * from "./screen";
+export * from "./boxes/index.ts";
+export * from "./player/canvasPlayer.ts";

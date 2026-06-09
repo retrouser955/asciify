@@ -1,0 +1,5 @@
+{
+	"clientId": "Your Spotify App Client ID",
+	"clientSecret": "Your Spotify App Client Secret",
+	"spDcCookie": "Your Spotify SPDC cookie"
+}

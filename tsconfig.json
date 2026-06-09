@@ -5,6 +5,7 @@
         "noEmit": true,
         "paths": {
             "neo-blessed": ["./node_modules/@types/blessed"]
-        }
+        },
+        "module": "esnext"
     }
 }

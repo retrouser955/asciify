@@ -1,1 +1,1 @@
-export * from "./Transformer/PCMVolumeTransformer";
+export * from "./Transformer/PCMVolumeTransformer.ts";

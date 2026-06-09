@@ -1,0 +1,9 @@
+zeroconf_enabled: false
+device_name: "AsciiFy"
+server:
+  enabled: true
+  address: localhost
+  port: 3200
+  image_size: small
+credentials:
+  type: interactive

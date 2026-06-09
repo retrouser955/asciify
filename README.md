@@ -7,3 +7,6 @@ AsciiFy is a Spotify player TUI written in NodeJS using librespot as a backend. 
 - Full Spotify player in the terminal
 - Support album art in ASCII format
 - Play ASCII based Spotify Canvas videos
+
+# Setting up
+
