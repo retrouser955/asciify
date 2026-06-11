@@ -8,23 +8,25 @@ export async function createRespotInstance() {
     const respotPath = path.join(import.meta.dirname, "..", "golibrespot", "go-librespot");
     const configPath = path.join(import.meta.dirname, "..", "golibrespot", "config");
 
-    const p = spawn(respotPath, [
+    const respotProcess = spawn(respotPath, [
         "--config_dir", configPath
-    ])
-
-	let isResolved = false;
+    ]);
 
 	await new Promise<void>((resolve) => {
-		p.stderr.on("data", (chunk) => {
+		respotProcess.stderr.on("data", (chunk) => {
 			const str = chunk instanceof Buffer ? chunk.toString() : chunk as string;
-			if(!isResolved && str.includes("authenticated Login5")) {
-				isResolved = true;
+			if(str.includes("authenticated Login5")) {
 				resolve();
+				respotProcess.stderr.removeAllListeners();
 			}	
 		})
 	})
 
-    return p;
+	process.on("exit", () => {
+		respotProcess.kill("SIGKILL");
+	})
+
+    return respotProcess;
 }
 
 export interface Metadata {
@@ -35,6 +37,7 @@ export interface Metadata {
     album_name: string;
     album_cover_url: string;
     position: number;
+
     duration: number;
 }
 
@@ -103,22 +106,42 @@ export interface RespotEventsInternal {
     [RespotEvents.Volume]: (vol: Volume) => unknown;
 }
 
+export interface StatusReturn {
+	device_id: string;
+	track: Metadata | null;
+}
+
 export class LibRespotController extends TypedEmitter<RespotEventsInternal> {
-    ws: WebSocket
     constructor() {
         super();
-        this.ws = new WebSocket("ws://127.0.0.1:3200/events");
-
-        this.ws.addEventListener("message", (ev) => {
-            const data = JSON.parse(ev.data) as { type: keyof RespotEventsInternal, data: unknown };
-
-            this.emit(data.type, data.data as any);
-        })
     }
 
-    async fetchCurrentStatus() {
+	createSocketServer() {
+		const ws = new WebSocket("ws://127.0.0.1:3200/events");
+
+        ws.addEventListener("message", (ev) => {
+            const data = JSON.parse(ev.data) as { type: keyof RespotEventsInternal, data: unknown };
+            this.emit(data.type, data.data as any);
+        });
+	}
+
+    async fetchCurrentStatus(): Promise<StatusReturn> {
         const t = await fetch(`${RESPOT_URL}/status`);
 
         return t.json();
     }
+
+	async play(trackId: string) {
+		trackId = trackId.replace(/^(spotify:track:)?/, "spotify:track:");
+
+		const req = await fetch(`${RESPOT_URL}/player/play`, {
+			body: JSON.stringify({
+				uri: trackId
+			})
+		});
+
+		if(!req.ok) throw new Error("Play request failed");
+	}
 }
+
+export const controller = new LibRespotController();

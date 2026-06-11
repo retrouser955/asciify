@@ -8,6 +8,13 @@ screen.key(['C-c'], () => {
 	process.exit(0);
 })
 
+export const progressBarBox = blessed.text({
+	width: "40%",
+	height: 1,
+	top: "95%",
+	left: "center"
+});
+
 export const mainContent = blessed.box({
     top: "0%",
     left: "0%",
@@ -60,6 +67,7 @@ export const canvasDisplay = blessed.text({
 screen.append(mainContent);
 screen.append(canvasDisplay);
 screen.append(playerBar);
+screen.append(progressBarBox);
 
 export const render = () => {
     screen.render();

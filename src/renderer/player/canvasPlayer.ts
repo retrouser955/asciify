@@ -8,6 +8,8 @@ import { spawn } from "node:child_process";
 // import { Readable } from "node:stream";
 import { render } from "../boxes/index.ts";
 import { canvasDisplay } from "../boxes/index.ts";
+import { bufferToAscii } from "./canvasEncoder.worker.ts";
+import { createWriteStream } from "node:fs";
 // import { createWriteStream } from "node:fs";
 
 const worker = new Worker(path.join(process.cwd(), "src", "renderer", "player", "canvasEncoder.worker.ts"));
@@ -71,7 +73,7 @@ export async function downloadCanvas(url: string) {
         const ffmpegArgs = [
 			"-headers", headersFFmpegFormat,
             "-i", url,
-            "-vf", `scale=${width}:${height},fps=${CANVAS_DISPLAY_FPS}`,
+            "-vf", `scale=iw*2:ih,scale='max(${width},iw*${height}/ih)':'max(${height},ih*${width}/iw)',crop=${width}:${height},fps=${CANVAS_DISPLAY_FPS}`,
             "-f", "rawvideo",
             "-pix_fmt", "rgba",
             "pipe:1"
@@ -83,10 +85,12 @@ export async function downloadCanvas(url: string) {
         ffmpegProcess.stdout.on("data", (chunk) => {
             frames.push(createAsciiArray({
                 width,
-                height,
+                height: Math.floor(height / 2),
                 videoFrame: Buffer.from(chunk)
             }));
         });
+
+		ffmpegProcess.stderr.pipe(createWriteStream("./ffmpeglog.txt"))
 
 		// ffmpegProcess.stderr.pipe(createWriteStream("logs.txt"));
 

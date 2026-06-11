@@ -10,46 +10,6 @@ parentPort?.on("message", (data) => {
     parentPort?.postMessage(asciiArray);
 })
 
-export function bufferToBg(width: number, height: number, buffer: Buffer) {
-    let asciiFrame = "";
-    let lastR = -1, lastG = -1, lastB = -1;
-    let currentGroupString = "";
-
-    for (let i = 0; i < buffer.length; i += 4) {
-        const r = buffer[i];
-        const g = buffer[i + 1];
-        const b = buffer[i + 2];
-
-        if (lastR === r && lastG === g && lastB === b) {
-            currentGroupString += " ";
-        } else {
-            if (currentGroupString.length > 0) {
-                const colored = chalk.bgRgb(lastR, lastG, lastB)(currentGroupString);
-                asciiFrame += colored;
-            }
-
-            currentGroupString = " ";
-
-            lastR = r;
-            lastG = g;
-            lastB = b;
-        }
-
-        let rowCount = 0;
-
-        if (((i / 4) + 1) % width === 0) {
-            rowCount++;
-
-            if (rowCount < height) {
-                asciiFrame += "\n";
-            }
-        }
-    }
-
-    return asciiFrame;
-}
-
-
 export function bufferToAscii(width: number, height: number, buffer: Buffer) {
     let asciiFrame = "";
     const asciiScale = " .:-=+*#%@";
