@@ -1,6 +1,8 @@
 import path from "node:path";
 import { TypedEmitter } from "tiny-typed-emitter";
 import { spawn } from "node:child_process";
+import { bar } from "../../renderer/progressBar/index.ts";
+import { lyrics } from "../../renderer/lyrics/index.ts";
 
 const RESPOT_URL = "http://127.0.0.1:3200";
 
@@ -108,6 +110,7 @@ export interface RespotEventsInternal {
 
 export interface StatusReturn {
 	device_id: string;
+	paused: boolean;
 	track: Metadata | null;
 }
 
@@ -137,10 +140,29 @@ export class LibRespotController extends TypedEmitter<RespotEventsInternal> {
 		const req = await fetch(`${RESPOT_URL}/player/play`, {
 			body: JSON.stringify({
 				uri: trackId
-			})
+			}),
+			method: "POST"
 		});
 
 		if(!req.ok) throw new Error("Play request failed");
+	}
+
+	async togglePause() {
+		await fetch(`${RESPOT_URL}/player/playpause`, {
+			method: "POST"
+		})
+
+		const status = await this.fetchCurrentStatus();
+
+		if(!status.paused) {
+			bar.unpause();
+			lyrics.unpause();
+		}
+
+		if(status.track) {
+			bar.setPosition(status.track.position);
+			lyrics.setPosition(status.track.position);
+		}
 	}
 }
 

@@ -1,6 +1,7 @@
 import { progressBarBox, render } from "../boxes/index.ts";
 import chalk from "chalk";
 import { systemLoop } from "../systemLoop/index.ts";
+import { lock } from "../../locks.ts";
 
 class ProgressBar {
 	duration = 0;
@@ -41,12 +42,22 @@ class ProgressBar {
 		return !this.isRunning && this.duration !== 0;
 	}
 
-	pause() {
-		this.isRunning = false;
+	async pause() {
+		const started = Date.now();
+		await lock.acquire("BAR_PAUSE", () => {
+			this.isRunning = false;
+			const drift = Date.now() - started;
+			if(drift > 0) this.setPosition(this.progress + drift)
+		})
 	}
 
-	unpause() {
-		this.isRunning = true;
+	async unpause() {
+		const started = Date.now();
+		await lock.acquire("BAR_PAUSE", () => {
+			this.isRunning = true;
+			const drift = Date.now() - started;
+			if(drift > 0) this.setPosition(this.progress + drift)
+		})
 	}
 
 	reset() {

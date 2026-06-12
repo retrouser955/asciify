@@ -31,7 +31,8 @@ export async function transferPlaybackSafe(deviceId: string) {
 
 	const transferred = await makeSpotifyAPIRequest(SPOTIFY_API_ENDPOINTS.TRANSFER_PLAYBACK, {
 		body: JSON.stringify({
-			"device_ids": [deviceId]
+			"device_ids": [deviceId],
+			"play": false
 		}),
 		headers: {
 			"Content-Type": "application/json"

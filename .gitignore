@@ -10,3 +10,6 @@ go-librespot
 
 # Config File
 asciify.json
+
+# Log files
+logs/*

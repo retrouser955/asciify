@@ -11,17 +11,16 @@ export async function fetchLyrics(name: string, artist: string, album: string, d
 
 	return f.json() as Promise<{ plainLyrics: string, syncedLyrics?: string }>;
 }
+const lyricsMatchPattern = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/;
 
 // Thank you discord-player
-const lyricsMatchPattern = /\[(\d{2}):(\d{2})\.(\d{2})\]/;
+// const lyricsMatchPattern = /\[(\d{2}):(\d{2})\.(\d{2})\]/g;
 
 export function parseSyncedLyrics(lyrics: string) {
 	const mappedLyrics = new Map<number, string>();
-
 	const lines = lyrics.split("\n");
 	for(const line of lines) {
-		const match = lyrics.match(lyricsMatchPattern);
-
+		const match = line.match(lyricsMatchPattern);
 		if(match) {
 			const [, minutes, seconds, ms] = match;
 			const timestamp = 
@@ -29,7 +28,9 @@ export function parseSyncedLyrics(lyrics: string) {
 				parseInt(seconds) * 1000 +
 				parseInt(ms)
 
-			mappedLyrics.set(timestamp, line.replace(lyricsMatchPattern, "").trim())
+			const replaced = line.replace(lyricsMatchPattern, "").trim();
+
+			mappedLyrics.set(timestamp, replaced);
 		}
 	}
 

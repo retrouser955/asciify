@@ -2,17 +2,12 @@
 import { Worker } from "node:worker_threads";
 import AsyncLock from "async-lock";
 import path from "node:path";
-// import { makeSpotifyRequest } from "../../utils/index.ts";
 import { CANVAS_DISPLAY_FPS, USER_AGENT } from "../../Constants.ts";
 import { spawn } from "node:child_process";
-// import { Readable } from "node:stream";
 import { render } from "../boxes/index.ts";
 import { canvasDisplay } from "../boxes/index.ts";
-import { bufferToAscii } from "./canvasEncoder.worker.ts";
-import { createWriteStream } from "node:fs";
-// import { createWriteStream } from "node:fs";
 
-const worker = new Worker(path.join(process.cwd(), "src", "renderer", "player", "canvasEncoder.worker.ts"));
+const worker = new Worker(path.join(import.meta.dirname, "canvasEncoder.worker.ts"));
 const lock = new AsyncLock();
 
 export interface AsciiArrayOptions {
@@ -89,9 +84,6 @@ export async function downloadCanvas(url: string) {
                 videoFrame: Buffer.from(chunk)
             }));
         });
-
-		ffmpegProcess.stderr.pipe(createWriteStream("./ffmpeglog.txt"))
-
 		// ffmpegProcess.stderr.pipe(createWriteStream("logs.txt"));
 
         ffmpegProcess.on("close", async (code) => {

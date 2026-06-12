@@ -4,7 +4,6 @@ import { SPOTIFY_STATE } from "./Constants.ts";
 import { asciifyConfig } from "./config/index.ts";
 import { createRespotInstance, controller } from "./spotify/librespot/index.ts";
 import { saveApiToken } from "./spotify/token/apiToken.ts";
-import Lock from "async-lock";
 import { Jimp } from "jimp";
 import { canvasDisplay, downloadCanvas, mainContent, play, playerBar, render } from "./renderer/index.ts";
 import { bufferToAscii } from "./renderer/player/canvasEncoder.worker.ts";
@@ -16,6 +15,10 @@ import { bar } from "./renderer/progressBar/index.ts";
 import { systemLoop } from "./renderer/systemLoop/index.ts";
 import { makeSpotifyRequest } from "./utils/index.ts";
 import { fetchCanvas } from "./spotify/metadata/canvas.ts";
+import { Lyrics, lyrics } from "./renderer/lyrics/index.ts";
+import { parseSyncedLyrics } from "./lyrics/index.ts";
+import { logger } from "./log/index.ts";
+import { lock } from "./locks.ts";
 // import { Logger } from "./log/index.ts";
 
 const tokens = await TokenUtils.load();
@@ -45,31 +48,54 @@ if (!tokens) {
     }
 
 	controller.createSocketServer();
-	
-	const lock = new Lock();
 
 	let currentlyPlaying = "";
 	let prevStop: Function | undefined = undefined;
 	
 	controller.on("seek", (seekEv) => {
 		bar.setPosition(seekEv.position);
+		lyrics.setPosition(seekEv.position);
 	})
 
-	controller.on("playing", async () => {
-		if(bar.isPaused) return bar.unpause();
+	controller.on("playing", async (ctx) => {
+		logger.log("Got event playing", ctx);
+		if(bar.isPaused && ctx.resume) {
+			bar.unpause();
+			lyrics.unpause();
+			return;
+		};
+
+		bar.reset();
+
 		const status = await controller.fetchCurrentStatus();
 		
 		if(!status.track) return;
 
 		if(currentlyPlaying === status.track.uri) return;
+
 		if(!bar.isRunning) bar.start(status.track.duration, status.track.position);
-		bar.reset();
-		bar.start(status.track.duration, status.track.position);
+
 		currentlyPlaying = status.track.uri;
 
-		playerBar.setContent(`{bold}${status.track.name}{/bold}\n${status.track.artist_names.join(", ")}`)
-		render();
+		playerBar.setContent(`{bold}${status.track.name}{/bold}\n${status.track.artist_names.join(", ")}`);
+		;(async () => {
+			const started = Date.now();
+			await lock.acquire("LYRICS_RENDER", async () => {
+				lyrics.reset();
+				const lyricsRes = await Lyrics.fetchLyrics(status.track!.name, status.track!.artist_names[0], status.track!.album_name, Math.floor(status.track!.duration / 1000));
 
+				if(!lyricsRes) return;
+				if(!lyricsRes.syncedLyrics) {
+					mainContent.setContent(lyricsRes.plainLyrics);
+					render();
+				} else {
+					const parsed = parseSyncedLyrics(lyricsRes.syncedLyrics);
+					lyrics.start(parsed, status.track!.position + (Date.now() - started));
+				}
+			})
+		})();
+		render();
+	
 		await lock.acquire("CANVAS_RENDERER", async () => {
 			if(!status.track) return;
 			if(prevStop) {
@@ -99,6 +125,8 @@ if (!tokens) {
 		
 			render();
 
+			if(asciifyConfig?.application?.canvas === false) return;
+
 			const canvas = await fetchCanvas(status.track.uri.split(":")[2]);
 
 			try {
@@ -114,71 +142,20 @@ if (!tokens) {
 		});
 	});
 
-	controller.on("paused", () => {
+	controller.on("paused", (ctx) => {
 		bar.pause();
+		logger.log("Got event paused", ctx);
+		lyrics.pause();
 	});
 
-	controller.on("not_playing", () => {
+	controller.on("not_playing", (ctx) => {
 		bar.reset();
-	});
-	
-	// let prevStop: Function | undefined = undefined;
-	/*
-    controller.on("metadata", async (metadata) => {
-		if(prevStop) prevStop();
-		
-		playerBar.setContent(`{bold}${metadata.name}{/bold}\n${metadata.artist_names.join(", ")}`)
-
-        const image = metadata.album_cover_url;
-	
-		const buffer = await makeSpotifyRequest(image);
-		const arrayBuffer = await buffer.arrayBuffer();
-
-        let imageEditor: Awaited<ReturnType<typeof Jimp.read>> | null = await Jimp.read(Buffer.from(arrayBuffer));
-        const w = Number(canvasDisplay.width);
-		setTimeout(async () => {
-			render();
-
-			imageEditor!.resize({
-				w,
-				h: Math.floor(w / 2)
-			});
-
-			const ascii = bufferToAscii(
-				w,
-				Math.floor(w / 2),
-				Buffer.from(imageEditor!.bitmap.data)
-			)
-
-			canvasDisplay.setContent(ascii);
-		
-			render();
-			imageEditor = null;
-
-			const canvas = await fetchCanvas(metadata.uri.split(":")[2]);
-
-			if(canvas) {
-				const downloadedCanvas = await downloadCanvas(canvas);
-
-				const { stop } = play(downloadedCanvas);
-				prevStop = stop;
-			}
-		}, 0);
-
-		const lyrics = await fetchLyrics(metadata.name, metadata.artist_names[0], metadata.album_name, Math.floor(metadata.duration / 1000));
-		
-		if(lyrics) {
-			mainContent.setContent("");
-			lyrics.plainLyrics.split("\n").forEach(v => mainContent.pushLine(v));
-			render();
-		}
-    })
-	*/
+		logger.log("Got event not playing", ctx);
+		lyrics.reset();
+	});	
 	
 	await transferPlaybackSafe(device_id);
 	console.clear();	
 	render();
 	systemLoop.startLoop();
-
-    //if(!playbackTransferred.ok) throw new Error("Unable to transfer playback");
 }

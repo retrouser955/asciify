@@ -11,5 +11,6 @@ export const CLIENT_BUFFER = Buffer.from(`${asciifyConfig.clientId}:${asciifyCon
 // Spotify Endpoint
 export const SPOTIFY_API_ENDPOINTS = {
 	GET_PLAYBACK_DEVICES: "https://api.spotify.com/v1/me/player/devices",
-	TRANSFER_PLAYBACK: "https://api.spotify.com/v1/me/player"
+	TRANSFER_PLAYBACK: "https://api.spotify.com/v1/me/player",
+	SEARCH: "https://api.spotify.com/v1/search"
 }
