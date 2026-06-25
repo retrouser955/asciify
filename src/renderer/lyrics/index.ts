@@ -42,7 +42,7 @@ export class Lyrics {
 	}
 
 	start(lyrics: Map<number, string>, pos?: number) {
-		if(this.isRunning) throw new Error("Already running");
+		if(this.isRunning) return;
 		const l = lyrics.values()
 			.map(v => `{gray-fg}${v}{/gray-fg}`)
 			.toArray()

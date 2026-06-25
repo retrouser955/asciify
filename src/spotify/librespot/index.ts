@@ -147,6 +147,12 @@ export class LibRespotController extends TypedEmitter<RespotEventsInternal> {
 		if(!req.ok) throw new Error("Play request failed");
 	}
 
+	pause() {
+		return fetch(`${RESPOT_URL}/player/pause`, {
+			method: "POST"
+		})
+	}
+
 	async togglePause() {
 		await fetch(`${RESPOT_URL}/player/playpause`, {
 			method: "POST"

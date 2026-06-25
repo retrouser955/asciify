@@ -1,4 +1,3 @@
-import { writeFileSync } from "node:fs";
 import { SPOTIFY_API_ENDPOINTS } from "../../Constants.ts";
 import { makeSpotifyAPIRequest } from "../../utils/index.ts";
 import { setTimeout } from "node:timers/promises";
